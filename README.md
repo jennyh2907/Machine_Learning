@@ -9,13 +9,21 @@ _Logistic Regression_ is a statistical method used to model the probability of a
 ### **3. Regression_Discontinuity_Design**
 _Regression discontinuity design (RDD)_ is a quasi-experimental research design that compares the outcomes of individuals who are just above or below a predetermined threshold, in order to estimate the causal effect of a treatment or intervention. The project shows how RDD can help to determine legal drinking age based on death rate. It also demonstrates the effect of choosing a smaller/larger bandwidth in such design.
 
-### **4. K_Means_PCA**
+### **4. Cross_Validation**
+
+_Cross Validation (CV)_ is commonly used to evaluate how well a model generalize to new data and avoid overfitting or underfitting. The project shows how to monitor the performance of each model after performing cross validation using simulated dataset.
+
+### **5. Dimension_Reduction**
+
+_Dimension reduction_ is a technique that reduces the number of variables in a dataset while retaining most of the original information. This project demonstrates several dimemnsion reduction techniques such as Principal Component Regression(PCR), Partial Least Squares(PLS), LASSO and RIDGE and do a comparison between generated test errors.
+
+### **6. K_Means_PCA**
 _Principal Component Analysis (PCA)_ is a statistical technique used to reduce the dimensionality of a dataset while retaining as much of the variation in the data as possible. _K-means clustering_ is a unsupervised machine learning technique that partitions a dataset into k clusters based on the similarity of their data points. This project conbines them together and shows how PCA can affect the result of k-means clustering using mandelon dataset.
 
-### **5. K_Nearest_Neighbor**
+### **7. K_Nearest_Neighbor**
 _K-nearest neighbors (KNN)_ is a supervised machine learning algorithm that classifies a data point based on the majority class of its k-nearest neighbors in a feature space. The project implements KNN technique to cluster variety in iris dataset.
 
-### **6. Double_Logistic_Regression**
+### **8. Double_Logistic_Regression**
 _Double logistic regression_ is a statistical technique used to model the relationship between a binary outcome and multiple predictor variables by fitting two logistic regression models in sequence to select relevant predictors and interactions. This project adopts such technique to measure the treatment effect of hotel cancellation and report the standard error using bootstrapping.
 
 ## **Contact**
