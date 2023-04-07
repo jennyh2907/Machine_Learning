@@ -1,0 +1,227 @@
+#' ---
+#' title: "ML Assignment1_Ching-Wen(Jenny) Huang"
+#' output: html_document
+#' date: "2023-01-08"
+#' ---
+#' 
+## ----setup, include=FALSE--------------------------------------------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(olsrr)
+library(ggplot2)
+
+#' 
+#' # Question 1
+#' 
+#' Write code that produces a 10,000 x 1001 matrix (rows x cols) of random numbers drawn from N(0,1). Seed your code using the last 4 digits of your phone number (this number will be different for everyone).  Every time you run the code, it should now yield the exact same (“random”) dataset.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Set seed using phone number
+set.seed(1249)
+
+# Generate random matrix
+n_row <- 10000
+n_col <- 1001
+m <- matrix(rnorm(n_row*n_col, mean=0, sd=1), nrow = n_row)
+
+#' 
+#' # Question 2
+#' 
+#' Treat the first column as “y” and the remaining 1000 columns as x’s.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Treat all columns as x
+colnames(m)[2:1001] <-paste("x", 1:1000, sep="")
+
+# Treat the first column as y
+colnames(m)[1] <- "y"
+
+#' 
+#' # Question 3
+#' 
+#' Regress y on x’s. Is an intercept needed?  Why?  Why not?
+#' 
+#' Intercept should always be kept unless there is a good theoretical reason to remove it. Moreover, we are not sure if this regression passes through origin. In combination of all above reasons, intercept is needed.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Convert to dataframe
+df_m <- as.data.frame(m)
+
+# Building Regression models, Grab p-values
+output<-numeric(1000) 
+for(i in seq_along(output)){
+  output[i] <-(summary(lm(y ~ m[,i+1], data = df_m)) $ coefficients)[2,4]
+}
+
+#' 
+#' # Question 4
+#' 
+#' Create a histogram of the p-values from the regression in Q3. What distribution does this histogram look like?
+#' 
+#' It looks like an uniform distribution. Also, the p-value of ks test is bigger than 0.05, therefore we can say it follows uniform distribution under 95% confidence level.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Plot a histogram
+plot(hist(output), main="Histogram of p-values")
+ks.test(output,"punif") 
+
+#' 
+#' 
+#' # Question 5
+#' 
+#' How many “significant” variables do you expect to find knowing how the data was generated? How many “significant” variables does the regression yield if alpha = 0.01?  What does this tell us?
+#' 
+#' I expect to find no truly significant variables knowing that the data is randomly generated. However, there should be about 10 "significant" variables, even if they are all false discoveries. Echoing to this, I find 10 significant variables when alpha = 0.01, showing that there may be some false discovery issue.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Filter for the number of p-value that is below 0.01 
+length(which(output < 0.01))
+
+#' 
+#' 
+#' # Question 6
+#' 
+#' Given the p values you find, use the BH procedure to control the FDR with a q of 0.1. How many “true” discoveries do you estimate?
+#' 
+#' The function return [-inf], which is pretty close to zero, showing that there is no p-values smaller than adjusted p-value. Therefore, we can conclude that there is no "true" discoveries based on the result. And it meets our expectation given the data is randomly generated.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# fdr function
+fdr <- function(pvals, q, plotit=FALSE){
+  pvals <- pvals[!is.na(pvals)]
+  N <- length(pvals)
+  
+  k <- rank(pvals, ties.method="min")
+  alpha <- max(pvals[ pvals <= (q*k/N) ])
+  
+  if(plotit){
+    sig <- factor(pvals <= alpha)
+    o <- order(pvals)
+    plot(pvals[o], log="xy", col=c("grey60","red")[sig[o]], pch=20, 
+      ylab="p-values", xlab="tests ordered by p-value", main = paste('FDR =',q))
+    lines(1:N, q*(1:N) / N)
+  }
+  
+  return(alpha)
+}
+
+fdr(output, 0.1, plotit = TRUE)
+
+#' 
+#' 
+#' # Question 7
+#' 
+#' Explore the “autos.csv” data. Include any metrics and / or plots you find interesting.
+#' 
+#' I use plots to specifically look at categorical variables. From the boxplot, we can see brand (variable Make) significantly influence the price. Although some dummy variables may be generated, we should still keep Make in the model. Moreover, horsepower is positively correlated with price. Last, as engine_type and engine_size have significant influence on horsepower, at least one of them should be kept in the model.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Read in the data
+auto <- read_csv("autos.csv")
+
+# Explore
+nrow(auto) # Sample size
+auto[1,] # First observation
+auto[1:3,] # First three observations
+auto[1:3,1] # First variable
+summary(auto) # summary of each variable
+
+# Save the values
+Make <- auto$make
+Fuel_type <- auto$fuel_type
+Aspiration <- auto$aspiration
+Num_of_doors <- auto$num_of_doors
+Body_style <- auto$body_style
+Drive_wheels <- auto$drive_wheels
+Engine_location <- auto$engine_location
+Wheel_base <- auto$wheel_base
+Length <- auto$length
+Width <- auto$width
+Height <- auto$height
+Curb_weight <- auto$curb_weight
+Engine_type <- auto$engine_type
+Num_of_cylinders <- auto$num_of_cylinders
+Engine_size <- auto$engine_size
+Fuel_system <- auto$fuel_system
+Bore <- auto$bore
+Stroke <- auto$stroke
+Compression_ratio <- auto$compression_ratio
+Horsepower <- auto$horsepower
+Peak_rpm <- auto$peak_rpm
+City_mpg <- auto$city_mpg
+Highway_mpg <- auto$highway_mpg 
+Price <- auto$price
+
+# Plot
+ggplot(auto, aes(make, price)) + geom_boxplot()
+plot(Horsepower ~ Price, data = auto)
+ggplot(auto, aes(Engine_type, Horsepower)) + geom_boxplot()
+plot(Horsepower ~ Engine_size, data = auto)
+
+#' 
+#' 
+#' # Question 8
+#' 
+#' Create a linear regression model to predict price. Explain your model.
+#' 
+#' First of all, after running the full model, I remove variables that have N/A, namely engine_type and fuel_system. Next, although many dummy variables may be generated, Make should kept in the model as brand is a important factor that influence car price. After that, I checked VIF values to see if there is multicollinearity issue. As the VIF value of fuel_type and compression ratio is above 10, I choose to remove one of them(Fuel_type). 
+#' 
+#' Following that, I run stepwise regression with all remaining variables, and it gives me a result of including 10 variables(Engine_size, Make, Curb_weight, Engine_location, Width, Peak_rpm, Aspiration, Bore, Body_style, Num_of_cylinders) in the model.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Full model
+full_model <-lm(Price ~ . , data = auto)
+summary(full_model)
+
+# Run regression model with all variables for checking multicollinearity
+model <- lm(Price ~ Make + Aspiration + Num_of_doors + Drive_wheels + Engine_location + Wheel_base + Length + Width + Height + Curb_weight + Num_of_cylinders + Body_style + Engine_size + Bore + Stroke + Compression_ratio + Horsepower + Peak_rpm + City_mpg + Highway_mpg + Fuel_type)
+
+car::vif(model) # Remove fuel type as there is multicollinearuty issue (VIF > 10)
+
+model_remove <- lm(Price ~ Make + Aspiration + Num_of_doors + Drive_wheels + Engine_location + Wheel_base + Length + Width + Height + Curb_weight + Num_of_cylinders + Body_style + Engine_size + Bore + Stroke + Compression_ratio + Horsepower + Peak_rpm + City_mpg + Highway_mpg)
+
+car::vif(model_remove) 
+
+# Save all variables in a separate dataframe
+df_selected <- data.frame(Price, Make, Aspiration, Num_of_doors, Drive_wheels, Engine_location, Wheel_base, Length, Width, Height, Curb_weight, Num_of_cylinders, Body_style, Engine_size, Bore, Stroke, Compression_ratio, Horsepower, Peak_rpm, City_mpg, Highway_mpg)
+
+# Run Stepwise Regression
+model_1 <- lm(Price ~ ., data = df_selected)
+stepwise <- olsrr::ols_step_both_p(model_1, prem = 0.05, pent = 0.05, details = TRUE)
+stepwise
+
+# Build a model with chosen variables
+model_chosen <- lm(Price ~ Engine_size + Make + Curb_weight + Engine_location + Width + Peak_rpm + Aspiration + Bore + Body_style + Num_of_cylinders)
+chosen_summary <- summary(model_chosen)
+summary(model_chosen)
+
+#' 
+#' 
+#' # Question 9
+#' 
+#' Why might false discoveries be an issue?
+#' 
+#' As more variables being kept in the model, the probability of finding false positive increases dramatically. Under 0.05 significance level, suppose 5 of 100 coefficients are actually influential, and all of them are statistically significant. However, among those insignificant 95 variables, 95*0.05=4.75 variables become false positives, leads to a 4.75/9.75 = 48.7% false discovery rate. Such high false discovery rate is definitely worth noted.
+#' 
+#' 
+#' # Question 10
+#' 
+#' Use the BH procedure to control the FDR with a q of 0.1. How many true discoveries do you estimate? Plot the cutoff line together with the significant and insignificant p-values.
+#' 
+#' There are 15 true discoveries.
+#' 
+## --------------------------------------------------------------------------------------------------------------
+# Save p-value and run the function
+output_auto <- numeric(32) 
+for(i in seq_along(output_auto)){
+  output_auto[i] <- chosen_summary $ coefficients[i+1,4]
+}
+
+fdr(output_auto, 0.1, plotit = TRUE)
+
+# Filter for the number of p-value that is below 0.01 
+length(which(output_auto < 0.03941114))
+
+#' 
